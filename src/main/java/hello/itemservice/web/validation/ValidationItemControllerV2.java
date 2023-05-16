@@ -11,6 +11,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.validation.ValidationUtils;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -25,6 +27,17 @@ import java.util.Map;
 public class ValidationItemControllerV2 {
 
     private final ItemRepository itemRepository;
+
+    private final ItemValidator itemValidator;
+
+    @InitBinder//이 컨트롤러가 요청 될때 마다 항상 불러온다.
+    public void init(WebDataBinder dataBinder){
+        dataBinder.addValidators(itemValidator);
+        // 요청 될 때마다이면 항상 itemValidator가 포함된다.
+
+        //순서는 @Validated 어노테이션이 있는 맵핑 메소드에 모델을 supports에서 검증 후 true값을 던지면
+        //이후 validate 메소드로 바인딩 데이터가 쌓이게 된다.
+    }
 
     @GetMapping
     public String items(Model model) {
@@ -122,7 +135,7 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}";
     }
 
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String addItemV4(@ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         //주의할 점은 BindingResult는 @ModelAttribute를 붙인 오브젝트 뒤에 오는 것으로 순서가 중요하다.
         //필드 검증
@@ -163,6 +176,38 @@ public class ValidationItemControllerV2 {
                 bindingResult.reject("totalPriceMin",new Object[]{10000,result},null);
                 //bindingResult.addError(new ObjectError("item",new String[]{"totalPriceMin"},new Object[]{10000,result},"가격 * 수량의 합은 10,000원 이상이어야 합니다. 현재 값 = " + result));
         }
+        //타입 검증
+
+        if(bindingResult.hasErrors()){
+            log.info("errors={}",bindingResult);
+            return "validation/v2/addForm";
+        }
+
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+    //@PostMapping("/add")
+    public String addItemV5(@ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
+
+        itemValidator.validate(item,bindingResult);
+        //타입 검증
+
+        if(bindingResult.hasErrors()){
+            log.info("errors={}",bindingResult);
+            return "validation/v2/addForm";
+        }
+
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+
+    @PostMapping("/add") // WebDataBinder를 사용하기 위해서는 모델 앞에 @Validated 어노테이션을 추가해야한다.
+    public String addItemV6(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
+        //WebDataBinder로 인해 검증 데이터가 BindingResult에 알아서 쌓이게 된다.
         //타입 검증
 
         if(bindingResult.hasErrors()){
