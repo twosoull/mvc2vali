@@ -1,7 +1,10 @@
 package hello.itemservice.domain.item;
 
+import hello.itemservice.web.validation.SaveCheck;
+import hello.itemservice.web.validation.UpdateCheck;
 import lombok.Data;
 import org.hibernate.validator.constraints.Range;
+import org.hibernate.validator.constraints.ScriptAssert;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.Max;
@@ -9,20 +12,21 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 @Data
-@Service
+//@ScriptAssert(lang="javascript", script="_this.price * _this.quantity >= 10000", message="총합이 10000원이 넘지 않게 해주세요.")
 public class Item {
 
+    //@NotNull(groups = UpdateCheck.class)
     private Long id;
 
-    @NotBlank(message = "공백x")
+    //@NotBlank(message = "공백x", groups = {SaveCheck.class , UpdateCheck.class})
     private String itemName;
 
-    @NotNull
-    @Range(min = 1000, max = 1000000)
+    //@NotNull(groups = {SaveCheck.class,UpdateCheck.class})
+    //@Range(min = 1000, max = 1000000 , groups = {SaveCheck.class,UpdateCheck.class})
     private Integer price;
 
-    @NotNull
-    @Max(9999)
+    //@NotNull(groups = {SaveCheck.class,UpdateCheck.class})
+    //@Max(value = 9999, groups = SaveCheck.class)
     private Integer quantity;
 
     public Item() {
